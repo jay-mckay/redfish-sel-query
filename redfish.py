@@ -1,4 +1,5 @@
 import requests
+from requests import urllib3
 import sys
 from argparse import ArgumentParser
         
@@ -17,7 +18,7 @@ def query_node(remote, user, password):
     with requests.sessions.Session() as session: 
         session.auth = (user, password)
         session.verify = False
-        
+
         # find paths to system managers
         response = session.get(root + '/redfish/v1/Managers/', verify=False)
         if not response.ok:
@@ -44,13 +45,14 @@ def query_node(remote, user, password):
             response = session.get(root + page)
             data = response.json()
             location = data.get("LogServices").get("@odata.id")
-            response = session.get(location).json()
+            response = session.get(root + location).json()
             members = [s.get("@odata.id") for s in response.get("Members")]
             services.extend(members)
 
         return services
 
 def main():
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
     warnings = query_node(args.remote, args.user, args.password)
     for w in warnings:
