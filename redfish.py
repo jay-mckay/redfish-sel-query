@@ -1,5 +1,4 @@
 import requests
-from requests import urllib3
 import sys
 from argparse import ArgumentParser
         
@@ -28,7 +27,7 @@ def query_node(remote, user, password):
             managers = [m.get("@odata.id") for m in data.get("Members")]
 
         # find paths to systems
-        response = session.get(root + '/redfish/v1/Systems/')
+        response = session.get(root + '/redfish/v1/Systems/', verify=False)
         if not response.ok:
             print("No path to managers:" + response.reason)
         else:
@@ -42,17 +41,17 @@ def query_node(remote, user, password):
         services = []
         # on each manager and system page, find the path to log services
         for page in managers + systems:
-            response = session.get(root + page)
+            response = session.get(root + page, verify=False)
             data = response.json()
             location = data.get("LogServices").get("@odata.id")
-            response = session.get(root + location).json()
+            response = session.get(root + location, verify=False).json()
             members = [s.get("@odata.id") for s in response.get("Members")]
             services.extend(members)
 
         return services
 
 def main():
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
     warnings = query_node(args.remote, args.user, args.password)
     for w in warnings:
