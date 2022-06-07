@@ -48,7 +48,12 @@ def query_node(remote, user, password):
             members = [s.get("@odata.id") for s in response.get("Members")]
             services.extend(members)
 
-        return services
+        for service in services:
+            response = session.get(root + service + '/Entries')
+            data = response.json()
+            entries = [e.get("@odata.id") for e in response.get("Members")]
+
+        return entries
 
 def main():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
