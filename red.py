@@ -1,22 +1,26 @@
 import requests
+from argparse import ArgumentParser
 
 class RedfishConnection():
     def __init__(self, remote, user, password):
         self.remote = remote
         self.password = password
         self.user = user
-        self.root = 'https//' + remote
+        self.root = 'https://' + remote + '/redfish/v1/'
         self.session = requests.sessions.Session()
-        session.auth = (user, password)
-        session.verify = False
+        self.session.auth = (user, password)
+        self.session.verify = False
 
-    def get(resource):
-        return session.get(root + resource)
+    def get(self, resource):
+        response = self.session.get(self.root + resource)
+        if not response.ok:
+            return "unable to fetch from " + resource
+        return response.json()
         
 def query(remote, user, password):
     redfish = RedfishConnection(remote, user, password)
-    response = redfish.get('/Managers/')
-    print(response)
+    data = redfish.get('Managers/')
+    managers = [m.get('@odata.id') for m in data.get('Members')]
 
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
@@ -30,7 +34,7 @@ def parse_args():
 def main():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
-    query(args.remote, arges.user, args.password)
+    query(args.remote, args.user, args.password)
             
 if __name__ == "__main__":
     main()           
