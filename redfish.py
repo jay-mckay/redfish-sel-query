@@ -1,13 +1,7 @@
 import requests
 import sys
 from argparse import ArgumentParser
-"""
-@dataclass
-class SystemEvent:
 
-    message: str
-    state: str
-"""
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
     arguments = parser.add_argument_group(title="mandatory arguments")
