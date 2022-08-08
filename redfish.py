@@ -1,7 +1,13 @@
 import requests
 import sys
 from argparse import ArgumentParser
-        
+"""
+@dataclass
+class SystemEvent:
+
+    message: str
+    state: str
+"""
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
     arguments = parser.add_argument_group(title="mandatory arguments")
@@ -53,7 +59,7 @@ def query_node(remote, user, password):
             if not response.ok:
                 print("Cannot reach events: " + response.reason)
             data = response.json()
-            entries = [data.get(e.get('Message') for e in data.get('Members')]
+            entries = [data.get(e.get('Message')) for e in data.get('Members')]
             if entries:
                 logs.append(entries)
 
