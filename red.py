@@ -8,33 +8,48 @@ class RedfishConnection():
         self.session.auth = (user, password)
         self.session.verify = False
 
-    def get(self, resource):
-        response = self.session.get(self.root + resource)
+    def get_many_id(self, location, resource):
+        response = self.session.get(self.root + location)
         if not response.ok:
-            return "unable to fetch from " + resource
-        return response.json()
+            return []
+        response = response.json()
+        items = [x.get('@odata.id') for x in response.get(resource)]
+        return items
 
-def get_manager_addresses(redfishconnection):
-    response = redfishconnection.get('/redfish/v1/Managers/')
-    addresses = [m.get('@odata.id') for m in response.get('Members')]
-    return addresses
+    def get_single_id(self, location, resource):
+        response = self.session.get(self.root + location)
+        if not response.ok:
+            return []
+        response = response.json()
+        item = response.get(resource).get('@odata.id')
+        return item
 
-def get_service_address(redfishconnection, manager_location):
-    response = redfishconnection.get(manager_location)
-    address = response.get('LogServices').get('@odata.id')
-    return address
+    def get_entry(self, location, resource):
+        response = self.session.get(self.root + location)
+        if not response.ok:
+            return []
+        response = response.json()
+        items = response.get('Members')
+        return items
 
-def get_log_addresses(redfishconnection, service_location):
-    response = redfishconnection.get(service_location)
-    addresses = [s.get('@data.id') for s in response.get('Members')]
+def flatten(thelist):
+    return [item for sublist in thelist for item in sublist]
 
-def query(remote, user, password):
-    redfish = RedfishConnection(remote, user, password)
-    manager_addresses = get_manager_addresses(redfish)
-    service_addresses = [get_service_address(redfish, address) for address in manager_addresses]
-    log_addresses = [get_log_addresses(redfish, address) for address in service_addresses]
-    for l in log_addresses:
-        print(l)
+def query_logs(remote, user, password, severity):
+    connection = RedfishConnection(remote, user, password)
+    manager_locations = connection.get_many_id('/redfish/v1/Managers/', 'Members')
+    service_locations = [connection.get_single_id(location, 'LogServices') for location in manager_locations]
+    log_locations = [connection.get_many_id(location, 'Members') for location in service_locations]
+    log_locations = flatten(log_locations)
+    entry_locations = [connection.get_single_id(location, 'Entries') for location in log_locations]
+    entries = [connection.get_entry(location, 'Members') for location in entry_locations]
+    entries = flatten(entries)
+    logs = []
+    for entry in entries:
+        if entry.get('Severity') == severity:
+            logs.append(entry)
+    return logs
+
 
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
@@ -48,7 +63,10 @@ def parse_args():
 def main():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
-    query(args.remote, args.user, args.password)
+    for i in range(100, 199):
+        remote = '10.241.15.' + str(i)
+        print("Remote: " + remote)
+        print(len(query_logs(remote, args.user, args.password, 'OK')))
 
 if __name__ == "__main__":
     main()

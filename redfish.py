@@ -46,9 +46,8 @@ def query_node(remote, user, password):
                 data = response.json()
                 for service in data.get('Members'):
                     services.append(service.get('@odata.id'))
-        
         logs = []
-        for page in services: 
+        for page in services:
             response = session.get(root + page + "/Entries/", verify=False)
             if not response.ok:
                 print("Cannot reach events: " + response.reason)
