@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 from argparse import ArgumentParser
 
 class RedfishConnection():
@@ -32,7 +33,8 @@ def flatten(thelist):
     return [item for sublist in thelist for item in sublist]
 
 # currently only queries the managers (BMC)
-def query_logs(remote, user, password, severity):
+# NOTE: does not query more than on page of logs currently
+def query_logs(remote, user, password):
     connection = RedfishConnection(remote, user, password)
     manager_locations = connection.get_many_id('/redfish/v1/Managers/', 'Members')
     service_locations = [connection.get_single_id(location, 'LogServices') for location in manager_locations]
@@ -43,10 +45,10 @@ def query_logs(remote, user, password, severity):
     entries = flatten(entries)
     logs = []
     for entry in entries:
-        if entry.get('Severity') == severity:
+        severity = entry.get('Severity')
+        if severity != "OK":
             logs.append(entry)
     return logs
-
 
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
@@ -54,32 +56,29 @@ def parse_args():
     arguments.add_argument("-r", "--remote", help="the remote bmc to query", required=True)
     arguments.add_argument("-u", "--user", help="the login username", required=True)
     arguments.add_argument("-p", "--password", help="the login password", required=True)
-    arguments.add_argument("-s", "--severity", help="the severity of log messages to be shown", required=False, default="Warning")
-    arguments.add_argument("-f", "--filename", help="file containing hosts to query", required=False)
     args = parser.parse_args()
     return args
-
-def parse_node_file(filename):
-    with open(filename) as f:
-        return f.readlines()
 
 def main():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
-
-    if args.filename is not None:
-        nodes = parse_node_file(args.filename)
-    else:
-        nodes = [args.remote]
-
-    for node in nodes:
-        print(node)
-        try:
-            logs = query_logs(args.remote, args.user, args.password, args.severity)
-            for l in logs:
-                print(l.get("Message"))
-        except requests.exceptions.RequestException as e:
-            print("Unable to fetch logs: " + str(e))
+    remote = '{:*^20}'.format(args.remote)
+    print(remote)
+    try:
+        logs = query_logs(args.remote, args.user, args.password)
+        for l in logs:
+            message = l.get("Message")
+            if message is None: message = "None"
+            severity = l.get("Severity")
+            if severity is None: severity = "None"
+            fseverity = '[{:^8}]'.format(severity)
+            datestring = l.get("Created")[0:19]
+            if datestring is None: datestring = "0000-00-00T00:00:00"
+            date = datetime.strptime(datestring, '%Y-%m-%dT%H:%M:%S')
+            datestring = datetime.strftime(date,'%b %d %Y, %T')
+            print(fseverity + " " + datestring + ": " + message)
+    except requests.exceptions.RequestException as e:
+        print("Unable to fetch logs:" +  str(e))
 
 if __name__ == "__main__":
     main()
