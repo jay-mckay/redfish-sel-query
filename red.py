@@ -1,11 +1,26 @@
+"""
+    Simple program to query redfish logs resources of BMCs
+
+    Redfish specification at
+    https://www.dmtf.org/sites/default/files/standards/documents/DSP0266_1.17.0.pdfi
+
+    Authors - J. Jay McKay
+"""
+
+
 import requests
 import json
 from datetime import datetime
 from argparse import ArgumentParser
 
+
+# hardcoded locations within redfish
 MANAGER_PATH = "/redfish/v1/Managers/"
 SYSTEM_PATH = "/redfish/v1/Systems/"
 CHASSIS_PATH = "/redfish/v1/Chassis/"
+
+
+# 
 ID = "@odata.id"
 MEMBERS = "Members"
 ENTRIES = "Entries"
@@ -33,13 +48,13 @@ class RedfishConnection():
         return response.json()
 
 
-    def get_many_id(self, location, resource):
+    def get_many_id(self, location, resource_collection):
         """
         returns the IDs of the items in a resource collection,
         or None if collection cannot be found
         """
         response = self.__request(location)
-        collection = response.get(resource)
+        collection = response.get(resource_collection)
         if collection is None:
             return None
         return[x.get(ID) for x in collection]
@@ -77,10 +92,10 @@ def query_logs(remote, user, password):
     attempts to get logs from a redfish resource locatated at remote
     """
 
-    #initialize the connection
+    # initialize the connection
     connection = RedfishConnection(remote, user, password)
 
-    #get locations where logs could be
+    # get locations where logs could be
     manager_locations = connection.get_many_id(MANAGER_PATH, MEMBERS)
     system_locations = connection.get_many_id(SYSTEM_PATH, MEMBERS)
     chassis_locations = connection.get_many_id(CHASSIS_PATH, MEMBERS)
