@@ -145,7 +145,7 @@ def print_logs(logs):
         date = datetime.strptime(datestring, '%Y-%m-%dT%H:%M:%S')
         datestring = datetime.strftime(date,'%b %d %Y, %T')
         print(fseverity + " " + datestring + ": " + message)
-
+# https://stackoverflow.com/questions/27921629/python-using-getpass-with-argparse
 
 def main():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
