@@ -13,7 +13,7 @@ import requests
 import json
 from datetime import datetime
 from argparse import ArgumentParser
-import getpass
+from getpass import getpass
 
 
 # hardcoded locations within redfish
@@ -127,6 +127,9 @@ def query_logs(remote, user, password):
 
 def parse_args():
     parser = ArgumentParser(description="SEL collector via Redfish")
+    parser.add_argument("-v", "--verbose", action = 'store_const',
+                        const=True, default=False, dest='verbose',
+                        help='display detailed log information')
     arguments = parser.add_argument_group(title="mandatory arguments")
     arguments.add_argument("-r", "--remote", help="the remote bmc to query", required=True)
     arguments.add_argument("-u", "--user", help="the login username", required=True)
@@ -134,37 +137,35 @@ def parse_args():
     return args
 
 
-def print_logs(logs):
+def print_logs(logs, verbose):
+    show = []
     for l in logs:
-        message = l.get("Message")
-        if message is None: message = "None"
         severity = l.get("Severity")
-        if severity is None: severity = "None"
+        if severity != 'Critical' and not verbose:
+            continue
         fseverity = '[{:^8}]'.format(severity)
+        message = l.get("Message")
+        if message is None:
+            continue
         datestring = l.get("Created")[0:19]
         if datestring is None: datestring = "0000-00-00T00:00:00"
         date = datetime.strptime(datestring, '%Y-%m-%dT%H:%M:%S')
         datestring = datetime.strftime(date,'%b %d %Y, %T')
-        print(fseverity + " " + datestring + ": " + message)
-
-# Get password
-def get_password():
-    password = getpass.getpass(prompt="Enter the password: ")
-    return password
-
+        formatted = fseverity + " " + datestring + ": " + message
+        show.append((formatted, date))
+    show.sort(key=lambda x : x[1])
+    for s in show:
+        print(s[0])
 
 def main():
-    try:
-        password = get_password()
-    except: print("\nyour password is wrong. bye.\n")
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
-    remote = '{:*^20}'.format(args.remote)
     try:
+        password = getpass()
         logs = query_logs(args.remote, args.user, password)
-        print_logs(logs)
+        print_logs(logs, args.verbose)
     except requests.exceptions.RequestException as e:
-        print(remote + ": Unable to make request", e)
+        print(remote + ' : ' + e)
 
 if __name__ == "__main__":
     main()
