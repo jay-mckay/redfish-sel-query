@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
     Simple program to query redfish logs resources of BMCs
 
@@ -12,6 +13,7 @@ import requests
 import json
 from datetime import datetime
 from argparse import ArgumentParser
+import getpass
 
 
 # hardcoded locations within redfish
@@ -128,7 +130,6 @@ def parse_args():
     arguments = parser.add_argument_group(title="mandatory arguments")
     arguments.add_argument("-r", "--remote", help="the remote bmc to query", required=True)
     arguments.add_argument("-u", "--user", help="the login username", required=True)
-    arguments.add_argument("-p", "--password", help="the login password", required=True)
     args = parser.parse_args()
     return args
 
@@ -145,14 +146,22 @@ def print_logs(logs):
         date = datetime.strptime(datestring, '%Y-%m-%dT%H:%M:%S')
         datestring = datetime.strftime(date,'%b %d %Y, %T')
         print(fseverity + " " + datestring + ": " + message)
-# https://stackoverflow.com/questions/27921629/python-using-getpass-with-argparse
+
+# Get password
+def get_password():
+    password = getpass.getpass(prompt="Enter the password: ")
+    return password
+
 
 def main():
+    try:
+        password = get_password()
+    except: print("\nyour password is wrong. bye.\n")
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     args = parse_args()
     remote = '{:*^20}'.format(args.remote)
     try:
-        logs = query_logs(args.remote, args.user, args.password)
+        logs = query_logs(args.remote, args.user, password)
         print_logs(logs)
     except requests.exceptions.RequestException as e:
         print(remote + ": Unable to make request", e)
