@@ -15,6 +15,8 @@ from datetime import datetime
 from argparse import ArgumentParser
 from getpass import getpass
 
+import sys
+
 
 # hardcoded locations within redfish
 MANAGER_PATH = "/redfish/v1/Managers/"
@@ -164,8 +166,13 @@ def main():
         password = getpass()
         logs = query_logs(args.remote, args.user, password)
         print_logs(logs, args.verbose)
-    except requests.exceptions.RequestException as e:
-        print(remote + ' : ' + e)
-
+    except requests.exceptions.HTTPError as errmsghttp:
+        print (args.remote + " : HTTP Error : " + str(errmsghttp))
+    except requests.exceptions.ConnectionError as errmsgconnection:
+        print (args.remote + " : Connection Error: " + str(errmsgconnection))
+    except requests.exceptions.Timeout as errmsgtimeout:
+        print (args.remote + " : Timeout Error : " + str(errmsgtimeout))
+    except requests.exceptions.RequestException as errmsgrequest:
+        print(args.remote + ' : Generic Error :  ' + str(errmsgrequest))
 if __name__ == "__main__":
     main()
