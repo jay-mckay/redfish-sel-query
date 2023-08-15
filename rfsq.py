@@ -164,6 +164,8 @@ def print_logs(logs, verbose):
     if len(show) == 0:
         print ("There are no critical-level logs available for this host")
         sys.exit()
+    else:
+        print (len(show))
 
     for s in show:
         print(s[0])
