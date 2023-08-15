@@ -48,6 +48,10 @@ class RedfishConnection():
         makes an http request and returns the result as a JSON object
         """
         response = self.session.get(self.root + location)
+
+        if(response.status_code == 401):
+            print("Bad username or password. Try again.")  
+
         response.raise_for_status()
         return response.json()
 
@@ -156,6 +160,11 @@ def print_logs(logs, verbose):
         formatted = fseverity + " " + datestring + ": " + message
         show.append((formatted, date))
     show.sort(key=lambda x : x[1])
+
+    if len(show) == 0:
+        print ("There are no critical-level logs available for this host")
+        sys.exit()
+
     for s in show:
         print(s[0])
 
